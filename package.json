@@ -1,0 +1,9 @@
+{
+  "name": "thing",
+  "description": "A game",
+  "author": "Mary Rose Cook <maryrosecook@maryrosecook.com> (http://maryrosecook.com/)",
+  "version": "0.1.0",
+  "dependencies": {
+    "underscore": "1.4.4"
+  }
+}

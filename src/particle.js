@@ -4,7 +4,7 @@
     this.zindex = 0;
     this.body = game.physics.createBody(this, {
       shape: "circle",
-      pos: settings.pos,
+      center: settings.center,
       size: settings.size,
       bullet: settings.bullet || false,
       restitution: settings.restitution || 0.5,
@@ -35,7 +35,7 @@
     },
 
     draw: function(ctx) {
-      this.game.drawer.circle(this.pos, this.size.x / 2, undefined, this.color);
+      this.game.drawer.circle(this.center, this.size.x / 2, undefined, this.color);
     }
   };
 })(this);

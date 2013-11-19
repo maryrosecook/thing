@@ -73,6 +73,23 @@
       var shape = new Box2D.Collision.Shapes.b2PolygonShape()
 		  shape.SetAsBox(settings.size.x / 2 * BOX_2D_SCALE, settings.size.y / 2 * BOX_2D_SCALE);
       return shape;
+    },
+
+    triangle: function(settings) {
+      var shape = new Box2D.Collision.Shapes.b2PolygonShape()
+      var scale = settings.size.x * BOX_2D_SCALE;
+ 	    shape.SetAsArray([
+        new Vec(-scale * 0.5, scale * 0.866),
+        new Vec(0, -scale * 0.866),
+        new Vec(scale * 0.5, scale * 0.866)
+
+
+		    // new Vec(scale * 0.866 , scale * 0.5),
+		    // new Vec(0, scale * -1),
+		    // new Vec(scale * -0.866, scale * 0.5),
+	    ]);
+
+      return shape;
     }
   };
 
@@ -105,25 +122,15 @@
   };
 
   var isIntersecting = function(entity1, entity2) {
-    if (entity1.shape === "rectangle" && entity2.shape === "rectangle") {
-      return Coquette.Collider.Maths.rectanglesIntersecting(entity1, entity2);
-    } else if (entity1.shape === "circle" && entity2.shape === "circle") {
-      return Coquette.Collider.Maths.circlesIntersecting(entity1, entity2);
-    } else if (entity1.shape === "circle" && entity2.shape === "rectangle") {
-      return Coquette.Collider.Maths.circleAndRectangleIntersecting(entity1, entity2);
-    } else if (entity1.shape === "rectangle" && entity2.shape === "circle") {
-      return Coquette.Collider.Maths.circleAndRectangleIntersecting(entity2, entity1);
-    } else {
-      throw "Tried to test unknown shape combination intersection.";
-    }
+    return Coquette.Collider.Maths.rectanglesIntersecting(entity1, entity2);
   };
 
   var makeBody = function(world, entity, settings, shape) {
 		var bodyDef = new Box2D.Dynamics.b2BodyDef();
 		bodyDef.type = Box2D.Dynamics.b2Body.b2_dynamicBody;
     bodyDef.bullet = settings.bullet || false;
-		bodyDef.position = new Vec((settings.pos.x + settings.size.x / 2) * BOX_2D_SCALE,
-			                         (settings.pos.y + settings.size.y / 2) * BOX_2D_SCALE);
+		bodyDef.position = new Vec(settings.center.x * BOX_2D_SCALE,
+			                         settings.center.y * BOX_2D_SCALE);
 
 		var fixtureDef = new Box2D.Dynamics.b2FixtureDef();
 		fixtureDef.density = settings.density || 0.8;
@@ -139,7 +146,7 @@
     }
 
     body.entity = entity;
-    entity.pos = settings.pos;
+    entity.center = settings.center;
     entity.vec = { x: 0, y: 0 };
     entity.size = settings.size;
     entity.shape = settings.shape;
@@ -156,14 +163,15 @@
 
   var physicalBodyFns = {
     update: function() {
-      this.entity.pos = this.pos();
+      this.entity.center = this.center();
       this.entity.vec = this.vec();
+      this.entity.angle = this.angle();
     },
 
-    pos: function() {
+    center: function() {
 		  return {
-			  x: this.GetPosition().x / BOX_2D_SCALE - this.entity.size.x / 2,
-			  y: this.GetPosition().y / BOX_2D_SCALE - this.entity.size.y / 2
+			  x: this.GetPosition().x / BOX_2D_SCALE,
+			  y: this.GetPosition().y / BOX_2D_SCALE
 		  };
     },
 
@@ -171,6 +179,13 @@
       if (limit === undefined || Maths.magnitude(this.vec()) < limit) {
 	      this.ApplyForce(new Vec(vec.x, vec.y), this.GetPosition());
       }
+    },
+
+    rotateTo: function(dAngle) {
+      var self = this;
+      this.entity.game.c.runner.add(undefined, function() {
+        self.SetAngle(Maths.degToRad(dAngle));
+      });
     },
 
     drag: function(ratio) {
@@ -191,6 +206,10 @@
         x: this.m_linearVelocity.x,
         y: this.m_linearVelocity.y
       };
+    },
+
+    angle: function() {
+      return Maths.radToDeg(this.GetAngle());
     },
 
     mass: function() {
@@ -214,10 +233,7 @@
 
   DebugDrawer.prototype = {
 	  draw: function() {
-		  // ig.system.context.save();
-		  // ig.system.context.translate(-ig.game.screen.x * ig.system.scale, -ig.game.screen.y * ig.system.scale);
 		  this.world.DrawDebugData();
-		  // ig.system.context.restore();
 	  },
 
 	  clearRect: function() {},

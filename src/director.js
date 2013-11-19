@@ -1,57 +1,51 @@
 ;(function(exports) {
-  exports.Director = function(game) {
-    this.game = game;
-  };
-
-  exports.Director.prototype = {
-    update: function() {
-      if (this.game.c.entities.all(Monster).length < 3) {
-        createMonster(this.game,
-                      this.game.isla.pos,
-                      300,
-                      { x: 5, y: 5 });
+  exports.director = {
+    update: function(__, game) {
+      if (game.c.entities.all(Monster).length < 3) {
+        createMonster(game, game.isla.center, 600);
       }
+
+      if (game.c.entities.all(Light).length < 3) {
+        createLight(game, game.mary.center, 300);
+      }
+    },
+
+    dummyEntity: function(Constructor, center) {
+      return { center: center, size: Constructor.SIZE, shape: Constructor.SHAPE };
+    },
+
+    reset: function(game) {
+      destroyAll(game.c.entities.all(Light));
+      destroyAll(game.c.entities.all(Monster));
     }
   };
 
-  var createMonster = function(game, center, minDistance, size) {
-    var entity = {
-      pos: surroundingSpawnPoint(center, minDistance),
-      size: size,
-      shape: "circle"
-    };
+  var destroyAll = function(entities) {
+    for (var i = 0; i < entities.length; i++) {
+      entities[i].destroy();
+    }
+  };
 
-    if (!game.c.renderer.onScreen(entity) &&
-        game.physics.freeSpace(entity) &&
-        raytracer.visible(game.isla, entity, game.c.entities.all(Square))) {
-      game.c.entities.create(Monster, { pos: entity.pos, size: size });
+  var createLight = function(game, center, minDistance) {
+    var dummy = director.dummyEntity(Light,
+                                     Maths.surroundingSpawnPoint(center, minDistance));
+    if (game.physics.freeSpace(dummy)) {
+      game.c.entities.create(Light, { center: dummy.center });
+    } else {
+      createLight.apply(null, arguments);
+    }
+  };
+
+  var createMonster = function(game, center, minDistance) {
+    var dummy = director.dummyEntity(Monster,
+                                     Maths.surroundingSpawnPoint(center, minDistance));
+    if (!game.c.renderer.onScreen(dummy) &&
+        game.physics.freeSpace(dummy)
+        // raytracer.visible(game.isla, dummy, game.c.entities.all(Square))
+       ) {
+      game.c.entities.create(Monster, { center: dummy.center });
     } else {
       createMonster.apply(null, arguments);
-    }
-  };
-
-  var surroundingSpawnPoint = function(center, minDistance) {
-    var rand = Math.random();
-    if (rand < 0.25) { // top
-      return {
-        x: center.x - Maths.spread(minDistance * 2),
-        y: center.y - minDistance
-      };
-    } else if (rand < 0.5) { // right
-      return {
-        x: center.x + minDistance,
-        y: center.y - Maths.spread(minDistance * 2)
-      };
-    } else if (rand < 0.75) { // bottom
-      return {
-        x: center.x - Maths.spread(minDistance * 2),
-        y: center.y + minDistance
-      };
-    } else { // left
-      return {
-        x: center.x - minDistance,
-        y: center.y - Maths.spread(minDistance * 2)
-      };
     }
   };
 }(this));

@@ -1,10 +1,11 @@
 ;(function() {
   this.benignExploder = {
     setup: function(owner, eventer, settings) {
-      eventer.bind(this, "benignExploder:go", function() {
+      settings.event = settings.event || "go";
+      eventer.bind(this, "benignExploder:" + settings.event, function() {
         for(var i = 0; i < settings.count; i++) {
           owner.game.c.entities.create(Particle, {
-            pos: { x: owner.pos.x, y: owner.pos.y },
+            center: { x: owner.center.x, y: owner.center.y },
             size: { x: settings.size.x, y: settings.size.y },
             color: settings.color, density:1, maxLife: settings.maxLife, bullet: false,
             pusher: function() {

@@ -171,6 +171,31 @@
 
     zero: function() { return { x:0, y:0 }; },
 
+    surroundingSpawnPoint: function(center, minDistance) {
+      var rand = Math.random();
+      if (rand < 0.25) { // top
+        return {
+          x: center.x - minDistance + Maths.spread(minDistance),
+          y: center.y - minDistance * .5
+        };
+      } else if (rand < 0.5) { // right
+        return {
+          x: center.x + minDistance * .5,
+          y: center.y - minDistance + Maths.spread(minDistance),
+        };
+      } else if (rand < 0.75) { // bottom
+        return {
+          x: center.x - minDistance + Maths.spread(minDistance),
+          y: center.y + minDistance * .5
+        };
+      } else { // left
+        return {
+          x: center.x - minDistance * .5,
+          y: center.y - minDistance + Maths.spread(minDistance),
+        };
+      }
+    },
+
     degToRad: function(degrees) { return 0.01745 * degrees; },
     radToDeg: function(rad) { return rad / 0.01745; },
 

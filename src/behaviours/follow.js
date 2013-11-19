@@ -5,12 +5,12 @@
       eventer.bind(this, 'owner:update', function() {
         if (this.haveTarget()) {
           var toTargetUnit = Maths.unitVector({
-            x: owner.target.pos.x - owner.pos.x,
-            y: owner.target.pos.y - owner.pos.y
+            x: owner.target.center.x - owner.center.x,
+            y: owner.target.center.y - owner.center.y
           });
 
           var minimumPossibleDistance = owner.size.x / 2 + owner.target.size.x / 2 + 3;
-          var distance = Maths.distance(owner.pos, owner.target.pos);
+          var distance = Maths.distance(owner.center, owner.target.center);
           var startSlowing = 100;
           var fullStop = 50;
 
