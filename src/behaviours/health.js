@@ -18,11 +18,17 @@
 
 	      receiveDamage: function(amount, from) {
           if(this.health > 0) { // health gets decremented multiple times for some weird reason
+            var previousHealth = this.health;
 		        this.health -= amount;
-            eventer.emit("health:receiveDamage", from);
 		        if(this.health <= 0) {
               owner.destroy();
-		        }
+		        } else if (this.health > settings.health) { // don't set health above max
+              this.health = settings.health;
+            }
+
+            if (previousHealth !== this.health) {
+              eventer.emit("health:receiveDamage", from);
+            }
           }
         }
       }

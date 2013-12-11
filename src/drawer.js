@@ -1,9 +1,24 @@
 ;(function(exports) {
-  exports.Drawer = function(ctx) {
+  exports.Drawer = function(game, ctx) {
+    this.game = game;
     this.ctx = ctx;
   };
 
   exports.Drawer.prototype = {
+    startClip: function(ctx) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.game.c.renderer.getViewCenter().x,
+              this.game.c.renderer.getViewCenter().y,
+              this.game.c.renderer.getViewSize().x / 2, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.clip();
+    },
+
+    endClip: function(ctx) {
+      ctx.restore();
+    },
+
     circle: function(center, radius, strokeColor, fillColor) {
       describeCircle(this.ctx, center, radius);
 
@@ -40,9 +55,28 @@
       }
     },
 
+    getHome: function() {
+      var viewSize = this.game.c.renderer.getViewSize();
+      return { x: viewSize.x * 0.3, y: viewSize.y * 0.3 };
+    },
+
     point: function(center, color) {
       this.ctx.fillStyle = color;
       this.ctx.fillRect(center.x, center.y, 1, 1);
+    },
+
+    moveViewTowards: function(targetPoint, delta) {
+      var currentPoint = this.game.c.renderer.getViewCenter();
+      var distanceToGo = Maths.distance(currentPoint, targetPoint);
+
+      if (distanceToGo < 1) {
+        this.game.c.renderer.setViewCenter(targetPoint);
+      } else {
+        this.game.c.renderer.setViewCenter({
+          x: currentPoint.x - (currentPoint.x - targetPoint.x) * delta,
+          y: currentPoint.y - (currentPoint.y - targetPoint.y) * delta
+        });
+      }
     },
 
     rect: function(center, size, strokeColor, fillColor) {

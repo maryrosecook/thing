@@ -1,27 +1,33 @@
 ;(function(exports) {
+  var MAX_HEALTH = 15;
+
   exports.Isla = function(game, settings) {
     this.game = game;
     this.zindex = 0;
     this.color = "#f00";
+    this.points = 0;
+
     this.body = game.physics.createBody(this, {
       shape: "circle",
       center: settings.center,
-      size: { x: 12, y: 12 }
+      size: { x: MAX_HEALTH, y: MAX_HEALTH },
+      density: 0.6
     });
 
-    andro.augment(this, health, { health: 12 });
+    andro.augment(this, pulse, { rgb: [255, 0, 0], colorsToCycle: [1, 0, 0] });
+    andro.augment(this, health, { health: MAX_HEALTH });
     andro.augment(this, destroy);
     andro.augment(this, push);
-    andro.augment(this, follow, { acceleration: 0.00002 });
+    andro.augment(this, follow, { acceleration: 0.00003 });
     andro.augment(this, home, {
       acceleration: 0.000020,
       turnSpeed: 0.001
     });
 
-    andro.augment(this, passer, { from: "owner:destroy", to: "benignExploder:go" });
+    andro.augment(this, passer, { from: "owner:destroy", to: "benignExploder:destroy" });
     andro.augment(this, benignExploder, {
       color: this.color,
-      count: 10,
+      count: 30,
       maxLife: 1000,
       size: { x: 1.5, y: 1.5 },
       force: 0.00005,
@@ -41,24 +47,65 @@
     andro.augment(this, {
       setup: function(owner, eventer) {
         eventer.bind(this, "health:receiveDamage", function() {
-          if (owner.getHealth() < 5) {
+          eventer.emit("pulse:stop");
+          if (owner.getHealth() <= 6) {
             owner.destroy();
-          } else {
-            owner.body.change({
-              size: { x: owner.getHealth(), y: owner.getHealth() },
-              center: owner.center
-            });
+          } else if (owner.getHealth() <= 9) {
+            eventer.emit("pulse:start", { speed: 15 });
+          } else if (owner.getHealth() <= 12) {
+            eventer.emit("pulse:start", { speed: 5 });
           }
+
+          owner.body.change({
+            size: { x: owner.getHealth(), y: owner.getHealth() },
+            center: owner.center
+          });
         });
       }
     });
 
-    // chase fireflies
-    andro.augment(this, "owner:update", function(__, owner, eventer) {
-      if (owner.getTarget() === undefined || !isAlive(owner.getTarget())) {
-        var target = closest(owner, game.c.entities.all(Firefly));
-        if (target !== undefined) {
-          eventer.emit("home:go", target);
+    // targeting - fireflies or mary
+    andro.augment(this, {
+      fireflyRange: 200,
+      maryRange: this.game.c.renderer.getViewSize().x,
+
+      setup: function(owner, eventer) {
+        this.owner = owner;
+
+        // acquire target
+        eventer.bind(this, "owner:update", function() {
+          owner.target = this.getTarget();
+        });
+
+        // move towards target
+        eventer.bind(this, "owner:update", function() {
+          if (owner.target instanceof Mary) {
+            andro.eventer(owner).emit("follow:go", owner.target);
+          } else if (owner.target instanceof Firefly) {
+            andro.eventer(owner).emit("home:go", owner.target);
+          }
+        });
+      },
+
+      getTarget: function() {
+        if (this.owner.target instanceof Firefly &&
+            isAlive(this.owner.target) &&
+            Maths.distance(this.owner.center, this.owner.target.center) <
+              this.fireflyRange) {
+          return this.owner.target; // keep this firefly as target
+        } else if (this.owner.target === undefined ||
+                   this.owner.target instanceof Mary) {
+          var target = closest(this.owner, game.c.entities.all(Firefly));
+          if (target !== undefined &&
+              Maths.distance(this.owner.center, target.center) <
+                this.fireflyRange) {
+            return target;
+          }
+        }
+
+        if (Maths.distance(this.owner.center, self.game.mary.center) <
+              this.maryRange) {
+          return self.game.mary;
         }
       }
     });
@@ -84,21 +131,25 @@
     DRAG_RATIO: 0.0005,
 
     update: function(delta) {
-      this.body.update();
-      this.body.drag(this.DRAG_RATIO);
-      andro.eventer(this).emit('owner:update');
+      if (this.game.stateMachine.state === "playing") {
+        this.body.update();
+        this.body.drag(this.DRAG_RATIO);
+        andro.eventer(this).emit('owner:update');
+      }
+    },
+
+    score: function(points) {
+      this.points += points;
     },
 
     collision: function(other) {
       if (other instanceof Firefly) {
         andro.eventer(this).emit("home:stop");
-      } else if (other instanceof Monster) {
-
       }
     },
 
     draw: function(ctx) {
-      this.game.drawer.circle(this.center, this.size.x / 2, undefined, this.color);
+      this.game.drawer.circle(this.center, this.size.x / 2, undefined, this.getColor());
     }
   };
 })(this);

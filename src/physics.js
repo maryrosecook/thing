@@ -25,11 +25,12 @@
 
     createBody: function(entity, settings) {
       var body = makeBody(this.world, entity, settings, shapes[settings.shape](settings));
-      var self = this;
+      var physics = this;
       body.remake = function(settingsUpdates) {
         extend(settings, settingsUpdates);
-        self.destroyBody(body)
-        return self.createBody(entity, settings);
+        extend(settings, { vec: { x: body.entity.vec.x, y: body.entity.vec.y }})
+        physics.destroyBody(body)
+        return physics.createBody(entity, settings);
       };
 
       this.bodies.push(body);
@@ -143,6 +144,11 @@
 
     if (settings.bodyType !== undefined) {
       body.SetType(settings.bodyType);
+    }
+
+    if (settings.vec !== undefined) {
+      body.m_linearVelocity.x = settings.vec.x;
+      body.m_linearVelocity.y = settings.vec.y;
     }
 
     body.entity = entity;

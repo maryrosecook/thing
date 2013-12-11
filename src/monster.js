@@ -3,7 +3,7 @@
     this.game = game;
     this.size = { x: Monster.SIZE.x, y: Monster.SIZE.y };
     this.zindex = 0;
-    this.color = "#0f0";
+    this.color = "#fff";
     this.body = game.physics.createBody(this, {
       shape: Monster.SHAPE,
       center: settings.center,
@@ -20,9 +20,12 @@
 
   exports.Monster.prototype = {
     update: function(delta) {
-      this.body.update();
-      this.body.rotateTo(Maths.vectorToAngle(this.vec));
-      andro.eventer(this).emit('owner:update');
+      if (this.game.stateMachine.state === "playing") {
+        this.body.update();
+        this.body.rotateTo(Maths.vectorToAngle(this.vec));
+        andro.eventer(this).emit("home:go", this.game.isla);
+        andro.eventer(this).emit('owner:update');
+      }
     },
 
     setupBehaviours: function() {
@@ -37,14 +40,11 @@
 
       andro.augment(this, benignExploder, {
         color: this.color,
-        count: 10,
+        count: 15,
         maxLife: 1000,
         size: { x: 1.5, y: 1.5 },
         force: 0.00005
       });
-
-      // general behaviour: home in on Isla
-      andro.eventer(this).emit("home:go", this.game.isla);
     },
 
     draw: function(ctx) {
@@ -53,7 +53,9 @@
 
     collision: function(other, type) {
       if (type === "add" && other instanceof Isla) {
-        other.receiveDamage(1, this);
+        other.receiveDamage(3, this);
+        this.destroy();
+      } else if (type === "add" && other instanceof Monster) {
         this.destroy();
       }
     }
@@ -119,5 +121,27 @@
 
   // only draw onscreen entities
 
-  // make camera follow lazily like bomberman
+  // particles destroy other monsters
+
+  // make it multiplayer
+
+  // make isla say words as collections of particles all pushed out together
+
+  // find pallette where all colours go together
+
+  // scoring:
+    // point for each firefly?
+    // point for each greyfly (surrounded by enemies) so have to charge up life on fireflies then go and score
+    // separate checkpoints have to get to for score
+    // can tie difficulty (monsters distance of fireflies/scoring opportunities) to score
+
+  // mimic iphone screen size - top and bottom less time to react
+
+  // show how much health isla has more clearly
+
+  // done
+    // make camera follow lazily like bomberman
+
+
+
 })(this);

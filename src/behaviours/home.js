@@ -7,22 +7,8 @@
       this.settings = settings;
 
       eventer.bind(this, 'home:go', function(target) {
-        this.target = target;
-        eventer.bind(this, 'owner:update', function() {
-          chaseTarget(target, owner, eventer, settings);
-        });
+        chaseTarget(target, owner, eventer, settings);
       });
-
-      eventer.bind(this, 'home:stop', function() {
-        this.target = undefined;
-        eventer.unbind(this, 'owner:update');
-      });
-
-      return {
-        getTarget: function() {
-          return this.target;
-        }
-      };
     }
   };
 

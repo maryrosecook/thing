@@ -1,17 +1,17 @@
 ;(function(exports) {
   exports.Light = function(game, settings) {
     this.game = game;
-    this.pos = settings.pos;
+    this.center = settings.center;
     this.size = { x: Light.SIZE.x, y: Light.SIZE.y };
 
     this.fireflies = [];
     var self = this;
-    // _.times(3, function() {
-    //   var pos = fireflyPos(self.game, self, 100);
-    //   game.c.entities.create(Firefly, { pos: pos, target: self }, function(firefly) {
-    //     self.fireflies.push(firefly);
-    //   });
-    // });
+    _.times(3, function() {
+      var center = fireflyCenter(self.game, self, 100);
+      game.c.entities.create(Firefly, { center: center, target: self }, function(firefly) {
+        self.fireflies.push(firefly);
+      });
+    });
   };
 
   var NUM_FIREFLIES = 3;
@@ -23,18 +23,19 @@
       andro.eventer(this).emit('owner:update');
     },
 
-    draw: function(ctx) {
-      // this.game.drawer.circle(this.pos, this.size.x / 2, undefined, "#fff");
-    },
+    // draw: function(ctx) {
+    //   this.game.drawer.circle(this.pos, this.size.x / 2, undefined, "#fff");
+    // },
 
     destroy: function() {
       _.invoke(this.fireflies, "destroy");
     }
   };
 
-  var fireflyPos = function(game, centerObj, minDistance) {
-    var dummy = director.dummyEntity(Firefly,
-                                     Maths.surroundingSpawnPoint(centerObj.pos, minDistance));
-    return game.physics.freeSpace(dummy) ? dummy.pos : fireflyPos.apply(null, arguments);
+  var fireflyCenter = function(game, centerObj, minDistance) {
+    var dummy = Director.dummyEntity(Firefly,
+                                     Maths.surroundingSpawnPoint(centerObj.center,
+                                                                 minDistance));
+    return game.physics.freeSpace(dummy) ? dummy.center : fireflyCenter.apply(null, arguments);
   };
 })(this);
