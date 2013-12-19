@@ -1,8 +1,7 @@
 ;(function() {
   this.benignExploder = {
     setup: function(owner, eventer, settings) {
-      settings.event = settings.event || "go";
-      eventer.bind(this, "benignExploder:" + settings.event, function() {
+      eventer.bind(this, "benignExploder:go", function() {
         for(var i = 0; i < settings.count; i++) {
           owner.game.c.entities.create(Particle, {
             center: { x: owner.center.x, y: owner.center.y },

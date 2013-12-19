@@ -52,7 +52,7 @@
             owner.destroy();
           } else if (owner.getHealth() <= 9) {
             eventer.emit("pulse:start", { speed: 15 });
-          } else if (owner.getHealth() <= 12) {
+          } else if (owner.getHealth() < 15) {
             eventer.emit("pulse:start", { speed: 5 });
           }
 
@@ -66,7 +66,6 @@
 
     // targeting - fireflies or mary
     andro.augment(this, {
-      fireflyRange: 200,
       maryRange: this.game.c.renderer.getViewSize().x,
 
       setup: function(owner, eventer) {
@@ -91,14 +90,14 @@
         if (this.owner.target instanceof Firefly &&
             isAlive(this.owner.target) &&
             Maths.distance(this.owner.center, this.owner.target.center) <
-              this.fireflyRange) {
+              exports.Isla.FIREFLY_RANGE) {
           return this.owner.target; // keep this firefly as target
         } else if (this.owner.target === undefined ||
                    this.owner.target instanceof Mary) {
           var target = closest(this.owner, game.c.entities.all(Firefly));
           if (target !== undefined &&
               Maths.distance(this.owner.center, target.center) <
-                this.fireflyRange) {
+                exports.Isla.FIREFLY_RANGE) {
             return target;
           }
         }
@@ -110,6 +109,8 @@
       }
     });
   };
+
+  exports.Isla.FIREFLY_RANGE = 200;
 
   var closest = function(entity, entities) {
     return entities.sort(function(a, b) {

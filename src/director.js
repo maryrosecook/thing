@@ -7,7 +7,7 @@
         type: type,
         time: new Date().getTime() + delay,
         run: function() {
-          fn();
+          fn(type);
           this.clear();
         },
 
@@ -23,69 +23,105 @@
       return queue.concat();
     };
 
+    this.clear = function() {
+      queue = [];
+    };
+
     this.update = function() {
-      _.forEach(queue, function(x) {
-        if (new Date().getTime() > x.time) {
-          x.run();
+      if (queue[0] !== undefined) { // do one build at a time so can splice safely
+        if (new Date().getTime() > queue[0].time) {
+          queue[0].run();
         }
-      });
+      }
     };
   };
 
-  exports.Director = function(game) {
+  var Director = function(game) {
     this.game = game;
     this.buildQueue = new BuildQueue();
+    this.stage = 1;
   };
 
-  exports.Director.dummyEntity = function(Constructor, center) {
+  Director.MIN_FLOCK_SPAWN_DISTANCE = 1500;
+
+  Director.dummyEntity = function(Constructor, center) {
     return { center: center, size: Constructor.SIZE, shape: Constructor.SHAPE };
   };
 
-  exports.Director.prototype = {
+  Director.prototype = {
     update: function(__) {
       var self = this;
 
       if (this.game.c.entities.all(Monster).length +
-          this.buildQueue.all(Monster).length < 2) {
-        this.buildQueue.add(Monster, 2000, function() {
+          this.buildQueue.all(Monster).length < Math.ceil(self.stage / 2)) {
+        this.buildQueue.add(Monster, 1000, function() {
           createMonster(self.game, self.game.isla.center, 600);
         });
       }
 
-      var existingFlocks = this.game.c.entities.all(Flock);
+      if (this.stage > 3 && this.flockCount("health") < 1) {
+        this.createHealthFlock(2000, Director.MIN_FLOCK_SPAWN_DISTANCE);
+      }
 
-      createBuildOrder(existingFlocks, this.buildQueue, "health", 0, 1, function() {
-        createFlock(self.game, self.game.mary.center, 1500, 10, "health");
-      });
-
-      createBuildOrder(existingFlocks, this.buildQueue, "points", 0, 1, function() {
-        createFlock(self.game, self.game.mary.center, 1500, 10, "points");
-      });
+      if (this.flockCount("points") < 1) {
+        this.buildQueue.add("points", delay=2000, function(type) {
+          self.stage++;
+          createFlock(self.game, self.game.mary.center,
+                      Director.MIN_FLOCK_SPAWN_DISTANCE, fireflies=self.stage, type);
+        });
+      }
 
       this.buildQueue.update();
     },
 
+    start: function() {
+      game.c.entities.create(Flock, {
+        center: {
+          x: game.drawer.getHome().x - 72,
+          y: game.drawer.getHome().y + 72
+        }, fireflyCount: 1, fireflyType: "points"
+      });
+    },
+
     reset: function() {
-      destroyAll(this.game.c.entities.all(Flock));
-      destroyAll(this.game.c.entities.all(Monster));
+      this.stage = 1;
+      this.buildQueue.clear();
+    },
+
+    destroyAll: function() {
+      _.invoke(this.game.c.entities.all(Flock), "destroy");
+      _.invoke(this.game.c.entities.all(Monster), "destroy");
+    },
+
+    flockCount: function(type) {
+      return filterType(this.game.c.entities.all(Flock), type).length +
+        filterType(this.buildQueue.all(), type).length;
+    },
+
+    createHealthFlock: function(delay, distance) {
+      this.buildQueue.add("health", delay, function(type) {
+        createFlock(self.game, self.game.mary.center, distance, fireflies=10, type);
+      });
     }
   };
+
+  // var isIslaNearPointsFirefly = function(isla, entities) {
+  //   var flocks = entities.all(Flock);
+  //   for (var i = 0; i < flocks.length; i++) {
+  //     if (flocks[i].type === "points") {
+  //       for (var j = 0; j < flocks[i].members.length; j++) {
+  //         if (Maths.distance(isla.center, flocks[i].members[j].center) < Isla.FIREFLY_RANGE) {
+  //           return true;
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   return false;
+  // };
 
   var filterType = function(items, type) {
     return _.filter(items, function(x) { return x.type === type; });
-  };
-
-  var destroyAll = function(entities) {
-    for (var i = 0; i < entities.length; i++) {
-      entities[i].destroy();
-    }
-  };
-
-  var createBuildOrder = function(existingEntities, buildQueue, type, delay, limit, createFn) {
-    if (filterType(existingEntities, type).length +
-        filterType(buildQueue.all(), type).length < limit) {
-      buildQueue.add(type, delay, createFn);
-    }
   };
 
   var createFlock = function(game, center, minDistance, fireflyCount, fireflyType) {
@@ -112,4 +148,6 @@
       createMonster.apply(null, arguments);
     }
   };
+
+  exports.Director = Director;
 }(this));

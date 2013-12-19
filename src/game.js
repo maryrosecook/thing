@@ -30,7 +30,7 @@
         this.drawer.moveViewTowards(this.mary.center, 0.1);
       } else if (this.stateMachine.state === "started" ||
                  this.stateMachine.state === "gameOver") {
-        this.drawer.moveViewTowards(this.mary.center, 0.08);
+        this.drawer.moveViewTowards(this.mary.center, 0.07);
         if (this.c.inputter.isPressed(this.c.inputter.LEFT_ARROW) ||
             this.c.inputter.isPressed(this.c.inputter.RIGHT_ARROW) ||
             this.c.inputter.isPressed(this.c.inputter.UP_ARROW) ||
@@ -69,12 +69,15 @@
           center: { x: home.x - 72, y: home.y - 72 }
         }, function(isla) {
           self.isla = isla;
+          self.director.start();
+
           andro.augment(self.isla, {
             setup: function(__, eventer) {
               eventer.bind(this, "owner:destroy", function() {
                 setTimeout(function() {
                   self.mary.destroy();
                   self.director.reset();
+                  self.director.destroyAll();
                   self.stateMachine.transition("gameOver");
 
                   setTimeout(function() {

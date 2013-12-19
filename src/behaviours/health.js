@@ -21,7 +21,7 @@
             var previousHealth = this.health;
 		        this.health -= amount;
 		        if(this.health <= 0) {
-              owner.destroy();
+              owner.destroy(from);
 		        } else if (this.health > settings.health) { // don't set health above max
               this.health = settings.health;
             }

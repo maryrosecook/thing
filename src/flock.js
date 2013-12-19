@@ -17,9 +17,10 @@
         collision: Firefly.config[self.type].collision,
         color: Firefly.config[self.type].color
       }, function(member) {
-        andro.eventer(member).bind(this, "owner:destroy", function() {
+        andro.eventer(member).bind(member, "owner:destroy", function() {
+          self.members.splice(self.members.indexOf(member), 1);
           if (++deadMembers === settings.fireflyCount) {
-            self.destroy();
+            self.game.c.entities.destroy(self);
           }
         });
 
@@ -41,8 +42,10 @@
     // },
 
     destroy: function() {
-      _.invoke(this.members, "destroy");
-      this.game.c.entities.destroy(this);
+      if (this.members.length > 0) {
+        this.members[0].destroy();
+        this.destroy();
+      }
     }
   };
 

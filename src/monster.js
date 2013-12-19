@@ -30,7 +30,6 @@
 
     setupBehaviours: function() {
       andro.augment(this, health, { health: 1 });
-      andro.augment(this, passer, { from: "owner:destroy", to: "benignExploder:go" });
       andro.augment(this, push);
       andro.augment(this, destroy);
       andro.augment(this, home, {
@@ -44,6 +43,14 @@
         maxLife: 1000,
         size: { x: 1.5, y: 1.5 },
         force: 0.00005
+      });
+
+      andro.augment(this, {
+        setup: function(owner, eventer) {
+          eventer.bind(owner, "owner:destroy", function() {
+            eventer.emit("benignExploder:go");
+          });
+        }
       });
     },
 

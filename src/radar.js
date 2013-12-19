@@ -32,7 +32,7 @@
                 arcStartEndRad[0] + ARC_ANGLE_OFFSET,
                 arcStartEndRad[1] + ARC_ANGLE_OFFSET, false);
         ctx.closePath();
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 1;
         ctx.stroke();
       });
     }

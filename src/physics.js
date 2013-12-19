@@ -83,11 +83,6 @@
         new Vec(-scale * 0.5, scale * 0.866),
         new Vec(0, -scale * 0.866),
         new Vec(scale * 0.5, scale * 0.866)
-
-
-		    // new Vec(scale * 0.866 , scale * 0.5),
-		    // new Vec(0, scale * -1),
-		    // new Vec(scale * -0.866, scale * 0.5),
 	    ]);
 
       return shape;

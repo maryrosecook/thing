@@ -16,7 +16,7 @@
     this.setupBehaviours();
   };
 
-  Firefly.SIZE = { x: 3, y: 3 };
+  Firefly.SIZE = { x: 4, y: 4 };
   Firefly.SHAPE = "circle";
 
   Firefly.config = {

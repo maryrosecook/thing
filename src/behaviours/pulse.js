@@ -8,7 +8,7 @@
 
       eventer.bind(this, "pulse:start", function(data) {
         eventer.bind(this, "owner:update", function() {
-          if (brightness === 120) {
+          if (brightness === 75) {
             change = data.speed;
           } else if (brightness === 255) {
             change = -data.speed;

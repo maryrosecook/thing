@@ -39,7 +39,7 @@
 
     collision: function(other, type) {
       if (type === "add" && other instanceof Monster) {
-        other.receiveDamage(10);
+        other.receiveDamage(10, this);
       }
     },
 

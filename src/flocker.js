@@ -45,12 +45,21 @@
 
   // normalize, combine based on weights
   var combine = function(vectorsAndWeights) {
-    return _.reduce(vectorsAndWeights, function(a, e) {
+    var unusedWeight = _.reduce(vectorsAndWeights, function(a, e) {
+      return e.v.x === 0 && e.v.y === 0 ? e.weight + a : 0;
+    }, 0);
+
+    var combinedV = _.reduce(vectorsAndWeights, function(a, e) {
       var unitV = Maths.unitVector(e.v);
       a.x += e.weight * unitV.x;
       a.y += e.weight * unitV.y;
       return a;
     }, { x: 0, y: 0 });
+
+    var unusedWeightVectorIncrease = 1 + unusedWeight;
+    combinedV.x *= unusedWeightVectorIncrease;
+    combinedV.y *= unusedWeightVectorIncrease;
+    return combinedV;
   };
 
   var sumVectors = function(vectors) {
