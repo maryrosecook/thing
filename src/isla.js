@@ -80,14 +80,14 @@
         eventer.bind(this, "owner:update", function() {
           if (owner.target instanceof Mary) {
             andro.eventer(owner).emit("follow:go", owner.target);
-          } else if (isDot(owner.target)) {
+          } else if (owner.target instanceof Dot) {
             andro.eventer(owner).emit("home:go", owner.target);
           }
         });
       },
 
       getTarget: function() {
-        if (isDot(this.owner.target) &&
+        if (this.owner.target instanceof Dot &&
             isAlive(this.owner.target) &&
             Maths.distance(this.owner.center, this.owner.target.center) <
               exports.Isla.FIREFLY_RANGE) {
@@ -112,10 +112,6 @@
 
   exports.Isla.FIREFLY_RANGE = 200;
 
-
-  var isDot = function(obj) {
-    return obj instanceof Dot;
-  };
 
   var closest = function(entity, entities) {
     return entities.sort(function(a, b) {
