@@ -34,15 +34,15 @@
       event: "destroy"
     });
 
-    // andro.augment(this, passer, { from: "health:receiveDamage", to: "benignExploder:damage" });
-    // andro.augment(this, benignExploder, {
-    //   color: this.color,
-    //   count: 3,
-    //   maxLife: 1000,
-    //   size: { x: 1.5, y: 1.5 },
-    //   force: 0.00005,
-    //   event: "damage"
-    // });
+    andro.augment(this, passer, { from: "health:receiveDamage", to: "benignExploder:damage" });
+    andro.augment(this, benignExploder, {
+      color: this.color,
+      count: 3,
+      maxLife: 1000,
+      size: { x: 1.5, y: 1.5 },
+      force: 0.00005,
+      event: "damage"
+    });
 
     andro.augment(this, {
       setup: function(owner, eventer) {
