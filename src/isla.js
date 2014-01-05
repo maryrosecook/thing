@@ -94,7 +94,7 @@
           return this.owner.target; // keep this firefly as target
         } else if (this.owner.target === undefined ||
                    this.owner.target instanceof Mary) {
-          var target = closest(this.owner, allDots(game.c.entities));
+          var target = closest(this.owner, game.c.entities.all(Dot));
           if (target !== undefined &&
               Maths.distance(this.owner.center, target.center) <
                 exports.Isla.FIREFLY_RANGE) {
@@ -112,9 +112,6 @@
 
   exports.Isla.FIREFLY_RANGE = 200;
 
-  var allDots = function(entities) {
-    return entities.all(Dot);
-  };
 
   var isDot = function(obj) {
     return obj instanceof Dot;
