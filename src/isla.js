@@ -66,7 +66,8 @@
 
     // targeting - dots or mary
     andro.augment(this, {
-      maryRange: this.game.c.renderer.getViewSize().x,
+      maryRange: this.game.c.renderer.getViewSize().x / 2,
+      birdRange: this.game.c.renderer.getViewSize().x / 2,
 
       setup: function(owner, eventer) {
         this.owner = owner;
@@ -90,14 +91,14 @@
         if (this.owner.target instanceof Dot &&
             isAlive(this.owner.target) &&
             Maths.distance(this.owner.center, this.owner.target.center) <
-              exports.Isla.FIREFLY_RANGE) {
-          return this.owner.target; // keep this firefly as target
+              this.birdRange) {
+          return this.owner.target; // keep this bird as target
         } else if (this.owner.target === undefined ||
                    this.owner.target instanceof Mary) {
           var target = closest(this.owner, game.c.entities.all(Dot));
           if (target !== undefined &&
               Maths.distance(this.owner.center, target.center) <
-                exports.Isla.FIREFLY_RANGE) {
+                this.birdRange) { // switch to bird if one in range of isla
             return target;
           }
         }
@@ -109,9 +110,6 @@
       }
     });
   };
-
-  exports.Isla.FIREFLY_RANGE = 200;
-
 
   var closest = function(entity, entities) {
     return entities.sort(function(a, b) {
