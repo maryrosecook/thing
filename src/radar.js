@@ -12,8 +12,9 @@
       var viewCenter = self.game.c.renderer.getViewCenter();
       var m = Coquette.Collider.Maths;
 
-      var possibleRadarEntities = this.game.c.entities.all(Monster)
-          .concat(this.game.c.entities.all(Firefly));
+      var possibleRadarEntities = _.filter(this.game.c.entities.all(), function(x) {
+        return x instanceof Dot || x instanceof Stuka;
+      });
 
       var radarEntities = _.filter(possibleRadarEntities, function(x) {
         return m.distance(self.game.c.renderer.getViewCenter(), x.center) > viewRadius;
@@ -24,7 +25,7 @@
         vectorToEntity.x *= viewRadius;
         vectorToEntity.y *= viewRadius;
 
-        var arcStartEndRad = extremetyAnglesRad(viewCenter, entity);
+        var arcStartEndRad = extremityAnglesRad(viewCenter, entity);
 
         ctx.strokeStyle = entity.color;
         ctx.beginPath();
@@ -38,7 +39,7 @@
     }
   };
 
-  var extremetyAnglesRad = function(fromPoint, entity) {
+  var extremityAnglesRad = function(fromPoint, entity) {
     var m = Coquette.Collider.Maths;
     var adjacent = m.distance(fromPoint, entity.center);
     var opposite = entity.size.x / 2; // assume roughly square shape

@@ -1,7 +1,7 @@
 ;(function(exports) {
   var Vec = Box2D.Common.Math.b2Vec2;
 
-  exports.Physics = function (game, gravity) {
+  var Physics = exports.Physics = function (game, gravity) {
     this.game = game;
 		this.world = new Box2D.Dynamics.b2World(new Box2D.Common.Math.b2Vec2(gravity.x, gravity.y),
                                             true);
@@ -10,7 +10,7 @@
     this.bodies = [];
   };
 
-  exports.Physics.prototype = {
+  Physics.prototype = {
     debug: false,
     update: function(delta) {
       this.world.Step(delta, WORLD_VELOCITY_ITERATIONS, WORLD_POSITION_ITERATIONS);
@@ -27,8 +27,8 @@
       var body = makeBody(this.world, entity, settings, shapes[settings.shape](settings));
       var physics = this;
       body.remake = function(settingsUpdates) {
-        extend(settings, settingsUpdates);
-        extend(settings, { vec: { x: body.entity.vec.x, y: body.entity.vec.y }})
+        utils.mixin(settingsUpdates, settings);
+        utils.mixin({ vec: { x: body.entity.vec.x, y: body.entity.vec.y }}, settings);
         physics.destroyBody(body)
         return physics.createBody(entity, settings);
       };
@@ -52,8 +52,10 @@
 
     freeSpace: function(entity) {
       for (var i = 0; i < this.bodies.length; i++) {
-        if (isIntersecting(entity, this.bodies[i].entity) === true) {
-          return false;
+        if (this.bodies[i].entity !== entity) {
+          if (isIntersecting(entity, this.bodies[i].entity) === true) {
+            return false;
+          }
         }
       }
 
@@ -132,29 +134,30 @@
 		fixtureDef.density = settings.density || 0.8;
 		fixtureDef.friction = settings.friction || 0;
 		fixtureDef.restitution = settings.restitution || 0.5;
-		fixtureDef.restitution = settings.restitution || 0.5;
 		fixtureDef.shape = shape;
 
 		var body = world.CreateBody(bodyDef);
+
+    // body.__proto__.__proto__ = physicalBodyFns;
+    utils.mixin(physicalBodyFns, body);
 
     if (settings.bodyType !== undefined) {
       body.SetType(settings.bodyType);
     }
 
-    if (settings.vec !== undefined) {
-      body.m_linearVelocity.x = settings.vec.x;
-      body.m_linearVelocity.y = settings.vec.y;
-    }
-
     body.entity = entity;
-    entity.center = settings.center;
-    entity.vec = { x: 0, y: 0 };
-    entity.size = settings.size;
-    entity.shape = settings.shape;
 
 		var fixture = body.CreateFixture(fixtureDef);
 
-    extend(body, physicalBodyFns);
+    if (settings.vec !== undefined) {
+      body.setLinearVelocity(settings.vec);
+    }
+
+    entity.center = body.center();
+    entity.vec = body.vec();
+    entity.size = { x: settings.size.x, y: settings.size.y };
+    entity.shape = settings.shape;
+
     return body;
   };
 
@@ -169,6 +172,11 @@
       this.entity.angle = this.angle();
     },
 
+    setLinearVelocity: function(v) {
+      this.m_linearVelocity.x = v.x;
+      this.m_linearVelocity.y = v.y;
+    },
+
     center: function() {
 		  return {
 			  x: this.GetPosition().x / BOX_2D_SCALE,
@@ -180,6 +188,15 @@
       if (limit === undefined || Maths.magnitude(this.vec()) < limit) {
 	      this.ApplyForce(new Vec(vec.x, vec.y), this.GetPosition());
       }
+    },
+
+    move: function(newCenter) {
+      this.SetPosition({
+			  x: newCenter.x * BOX_2D_SCALE,
+			  y: newCenter.y * BOX_2D_SCALE
+		  });
+
+      this.update();
     },
 
     rotateTo: function(dAngle) {
@@ -275,11 +292,5 @@
 
   var isOpposite = function(a, b) {
     return (a <= 0 && b > 0) || (a >= 0 && b < 0);
-  };
-
-  var extend = function(to, from) {
-    for (var i in from) {
-      to[i] = from[i];
-    }
   };
 })(this);

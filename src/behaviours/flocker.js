@@ -1,11 +1,11 @@
 ;(function(exports) {
   exports.flocker = {
-    getVector: function(firefly, otherFireflies, center, acceleration) {
+    getVector: function(bird, otherBirds, center, acceleration, weights) {
       var vec = combine([
-        { weight: 0.6, v: orbit(firefly, center) },
-        { weight: 0.3, v: heading(otherFireflies) },
-        { weight: 0.4, v: separation(firefly, otherFireflies, NEIGHBOR_DISTANCE) },
-        { weight: 0.36, v: cohesion(firefly, otherFireflies) }
+        { weight: weights.orbit, v: orbit(bird, center) },
+        { weight: weights.heading, v: heading(otherBirds) },
+        { weight: weights.separation, v: separation(bird, otherBirds, NEIGHBOR_DISTANCE) },
+        { weight: weights.cohesion, v: cohesion(bird, otherBirds) }
       ]);
 
       return {
@@ -15,7 +15,7 @@
     }
   };
 
-  var NEIGHBOR_DISTANCE = 20;
+  var NEIGHBOR_DISTANCE = 40;
 
   var heading = function(members) {
     return sumVectors(_.pluck(members, 'vec'));
@@ -56,9 +56,6 @@
       return a;
     }, { x: 0, y: 0 });
 
-    var unusedWeightVectorIncrease = 1 + unusedWeight;
-    combinedV.x *= unusedWeightVectorIncrease;
-    combinedV.y *= unusedWeightVectorIncrease;
     return combinedV;
   };
 

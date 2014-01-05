@@ -34,15 +34,15 @@
       event: "destroy"
     });
 
-    andro.augment(this, passer, { from: "health:receiveDamage", to: "benignExploder:damage" });
-    andro.augment(this, benignExploder, {
-      color: this.color,
-      count: 3,
-      maxLife: 1000,
-      size: { x: 1.5, y: 1.5 },
-      force: 0.00005,
-      event: "damage"
-    });
+    // andro.augment(this, passer, { from: "health:receiveDamage", to: "benignExploder:damage" });
+    // andro.augment(this, benignExploder, {
+    //   color: this.color,
+    //   count: 3,
+    //   maxLife: 1000,
+    //   size: { x: 1.5, y: 1.5 },
+    //   force: 0.00005,
+    //   event: "damage"
+    // });
 
     andro.augment(this, {
       setup: function(owner, eventer) {
@@ -64,7 +64,7 @@
       }
     });
 
-    // targeting - fireflies or mary
+    // targeting - dots or mary
     andro.augment(this, {
       maryRange: this.game.c.renderer.getViewSize().x,
 
@@ -80,21 +80,21 @@
         eventer.bind(this, "owner:update", function() {
           if (owner.target instanceof Mary) {
             andro.eventer(owner).emit("follow:go", owner.target);
-          } else if (owner.target instanceof Firefly) {
+          } else if (isDot(owner.target)) {
             andro.eventer(owner).emit("home:go", owner.target);
           }
         });
       },
 
       getTarget: function() {
-        if (this.owner.target instanceof Firefly &&
+        if (isDot(this.owner.target) &&
             isAlive(this.owner.target) &&
             Maths.distance(this.owner.center, this.owner.target.center) <
               exports.Isla.FIREFLY_RANGE) {
           return this.owner.target; // keep this firefly as target
         } else if (this.owner.target === undefined ||
                    this.owner.target instanceof Mary) {
-          var target = closest(this.owner, game.c.entities.all(Firefly));
+          var target = closest(this.owner, allDots(game.c.entities));
           if (target !== undefined &&
               Maths.distance(this.owner.center, target.center) <
                 exports.Isla.FIREFLY_RANGE) {
@@ -111,6 +111,14 @@
   };
 
   exports.Isla.FIREFLY_RANGE = 200;
+
+  var allDots = function(entities) {
+    return entities.all(Dot);
+  };
+
+  var isDot = function(obj) {
+    return obj instanceof Dot;
+  };
 
   var closest = function(entity, entities) {
     return entities.sort(function(a, b) {
@@ -132,11 +140,15 @@
     DRAG_RATIO: 0.0005,
 
     update: function(delta) {
+      this.body.update();
+      this.body.drag(this.DRAG_RATIO);
       if (this.game.stateMachine.state === "playing") {
-        this.body.update();
-        this.body.drag(this.DRAG_RATIO);
         andro.eventer(this).emit('owner:update');
       }
+      // var self = this;
+      // snowflake.every(function() {
+      //   console.log(self.center.x, self.center.y)
+      // }, 1000);
     },
 
     score: function(points) {
@@ -144,7 +156,7 @@
     },
 
     collision: function(other) {
-      if (other instanceof Firefly) {
+      if (other instanceof Dot) {
         andro.eventer(this).emit("home:stop");
       }
     },

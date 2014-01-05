@@ -2,12 +2,12 @@
   var BuildQueue = function() {
     var queue = [];
 
-    this.add = function(type, delay, fn) {
+    this.add = function(createFn, delay, fn) {
       var order = {
-        type: type,
+        type: createFn,
         time: new Date().getTime() + delay,
         run: function() {
-          fn(type);
+          fn(createFn);
           this.clear();
         },
 
@@ -19,7 +19,7 @@
       queue.push(order);
     };
 
-    this.all = function(type) {
+    this.all = function() {
       return queue.concat();
     };
 
@@ -42,32 +42,45 @@
     this.stage = 1;
   };
 
-  Director.MIN_FLOCK_SPAWN_DISTANCE = 1500;
-
-  Director.dummyEntity = function(Constructor, center) {
-    return { center: center, size: Constructor.SIZE, shape: Constructor.SHAPE };
-  };
+  Director.MIN_DOT_SPAWN_DISTANCE = 1500;
+  Director.MIN_STUKA_SPAWN_DISTANCE = 800;
 
   Director.prototype = {
+    isStageInProgress: true,
+
     update: function(__) {
       var self = this;
 
-      if (this.game.c.entities.all(Monster).length +
-          this.buildQueue.all(Monster).length < Math.ceil(self.stage / 2)) {
-        this.buildQueue.add(Monster, 1000, function() {
-          createMonster(self.game, self.game.isla.center, 600);
+      if (this.isStageInProgress && this.flockCount(Stuka) < 1) {
+        this.buildQueue.add(Stuka, delay=1000, function(createFn) {
+          createFlock(self.game, createFn, {
+            center: Maths.surroundingSpawnPoint(game.isla.center,
+                                                Director.MIN_STUKA_SPAWN_DISTANCE),
+            count: self.stage
+          });
         });
       }
 
-      if (this.stage > 3 && this.flockCount("health") < 1) {
-        this.createHealthFlock(2000, Director.MIN_FLOCK_SPAWN_DISTANCE);
+      if (this.stage > 3 && this.flockCount(HealthDot) < 1) {
+        this.buildQueue.add(HealthDot, delay=5000, function(createFn) {
+          createFlock(self.game, createFn, {
+            center: Maths.surroundingSpawnPoint(game.isla.center,
+                                                Director.MIN_DOT_SPAWN_DISTANCE),
+            count: 5
+          });
+        });
       }
 
-      if (this.flockCount("points") < 1) {
-        this.buildQueue.add("points", delay=2000, function(type) {
+      if (this.flockCount(PointsDot) < 1) {
+        this.isStageInProgress = false;
+        this.buildQueue.add(PointsDot, delay=3000, function(createFn) {
+          self.isStageInProgress = true;
           self.stage++;
-          createFlock(self.game, self.game.mary.center,
-                      Director.MIN_FLOCK_SPAWN_DISTANCE, fireflies=self.stage, type);
+          createFlock(self.game, createFn, {
+            center: Maths.surroundingSpawnPoint(game.isla.center,
+                                                Director.MIN_DOT_SPAWN_DISTANCE),
+            count: self.stage
+          });
         });
       }
 
@@ -75,11 +88,13 @@
     },
 
     start: function() {
-      game.c.entities.create(Flock, {
+      createFlock(this.game, PointsDot, {
+        minDistance: 100,
+        count: this.stage,
         center: {
-          x: game.drawer.getHome().x - 72,
-          y: game.drawer.getHome().y + 72
-        }, fireflyCount: 1, fireflyType: "points"
+          x: this.game.drawer.getHome().x - 102,
+          y: this.game.drawer.getHome().y + 102
+        }
       });
     },
 
@@ -89,19 +104,17 @@
     },
 
     destroyAll: function() {
-      _.invoke(this.game.c.entities.all(Flock), "destroy");
-      _.invoke(this.game.c.entities.all(Monster), "destroy");
+      _.invoke(this.game.c.entities.all(Dot), "destroy");
+      _.invoke(this.game.c.entities.all(Stuka), "destroy");
     },
 
-    flockCount: function(type) {
-      return filterType(this.game.c.entities.all(Flock), type).length +
-        filterType(this.buildQueue.all(), type).length;
-    },
-
-    createHealthFlock: function(delay, distance) {
-      this.buildQueue.add("health", delay, function(type) {
-        createFlock(self.game, self.game.mary.center, distance, fireflies=10, type);
-      });
+    flockCount: function(createFn) {
+      return _.filter(this.game.c.entities.all(Flock), function(x) {
+        return x.members.length > 0 && x.members[0] instanceof createFn;
+      }).length +
+      _.filter(this.buildQueue.all(), function(x) {
+        return x.type === createFn;
+      }).length;
     }
   };
 
@@ -120,33 +133,18 @@
   //   return false;
   // };
 
-  var filterType = function(items, type) {
-    return _.filter(items, function(x) { return x.type === type; });
-  };
+  var createFlock = function(game, createBirdFn, flockSettings) {
+    game.c.runner.add(undefined, function() { // next tick so sure not creating during col det
+      var flock = game.c.entities.create(Flock, flockSettings);
+      _.times(flockSettings.count, function() {
+        var bird = game.c.entities.create(createBirdFn, { center: flock.center });
+        while (!game.physics.freeSpace(bird)) {
+          bird.body.move(Maths.surroundingSpawnPoint(flock.center, 100));
+        }
 
-  var createFlock = function(game, center, minDistance, fireflyCount, fireflyType) {
-    var dummy = Director.dummyEntity(Flock,
-                                     Maths.surroundingSpawnPoint(center, minDistance));
-    if (game.physics.freeSpace(dummy)) {
-      game.c.entities.create(Flock, {
-        center: dummy.center, fireflyCount: fireflyCount, fireflyType: fireflyType
+        flock.add(bird);
       });
-    } else {
-      createFlock.apply(null, arguments);
-    }
-  };
-
-  var createMonster = function(game, center, minDistance) {
-    var dummy = Director.dummyEntity(Monster,
-                                     Maths.surroundingSpawnPoint(center, minDistance));
-    if (!game.c.renderer.onScreen(dummy) &&
-        game.physics.freeSpace(dummy)
-        // raytracer.visible(game.isla, dummy, game.c.entities.all(Square))
-       ) {
-      game.c.entities.create(Monster, { center: dummy.center });
-    } else {
-      createMonster.apply(null, arguments);
-    }
+    });
   };
 
   exports.Director = Director;

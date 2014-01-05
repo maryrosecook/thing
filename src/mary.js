@@ -38,7 +38,7 @@
     },
 
     collision: function(other, type) {
-      if (type === "add" && other instanceof Monster) {
+      if (type === "add" && other instanceof Stuka) {
         other.receiveDamage(10, this);
       }
     },

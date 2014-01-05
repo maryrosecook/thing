@@ -36,11 +36,13 @@
       "androjs/andro.js",
       "box2d/lib.js",
       "node_modules/underscore/underscore-min.js",
+      "src/utils.js",
     ].concat(new DirectoryList()
              .list("src/", true)
              .select(".js$")
              .reject("\.%23") // emacs autosave
              .removeAll([
+               "src/utils.js",
                "src/list-directory.js",
                "src/head.loader.js"
              ])

@@ -1,6 +1,6 @@
 ;(function(exports) {
   exports.Game = function() {
-    this.c = new Coquette(this, "canvas", 500, 500, "#000");
+    this.c = new Coquette(this, "canvas", 600, 600, "#000");
     this.drawer = new Drawer(this, this.c.renderer.getCtx());
     this.physics = new Physics(this, { x: 0, y: 0 });
     this.director = new Director(this);
@@ -48,9 +48,9 @@
         gameOver:  { url: "/images/gameover.png", size: { x: 200, y: 100 } }
       }, function(images) {
         self.images = images;
-        self.images.startGame.center = { x: 236, y: 177 };
-        self.images.instructions.center = { x: 228, y: 92 };
-        self.images.gameOver.center = { x: 236, y: 177 };
+        self.images.startGame.center = { x: 267, y: 207 };
+        self.images.instructions.center = { x: 259, y: 122 };
+        self.images.gameOver.center = { x: 267, y: 207 };
         callback();
       });
     },
@@ -59,35 +59,32 @@
       var viewSize = this.c.renderer.getViewSize();
       var home = this.drawer.getHome();
 
-      var self = this;
-      self.c.entities.create(Mary, {
+      this.mary = this.c.entities.create(Mary, {
         center: { x: home.x, y: home.y }
-      }, function(mary) {
-        self.mary = mary;
+      });
 
-        self.c.entities.create(Isla, {
-          center: { x: home.x - 72, y: home.y - 72 }
-        }, function(isla) {
-          self.isla = isla;
-          self.director.start();
+      this.isla = this.c.entities.create(Isla, {
+        center: { x: home.x - 72, y: home.y - 72 }
+      });
 
-          andro.augment(self.isla, {
-            setup: function(__, eventer) {
-              eventer.bind(this, "owner:destroy", function() {
-                setTimeout(function() {
-                  self.mary.destroy();
-                  self.director.reset();
-                  self.director.destroyAll();
-                  self.stateMachine.transition("gameOver");
+      this.director.start();
 
-                  setTimeout(function() {
-                    self.restartGame();
-                  }, 1000);
-                }, 500);
-              });
-            }
+      var self = this;
+      andro.augment(this.isla, {
+        setup: function(__, eventer) {
+          eventer.bind(this, "owner:destroy", function() {
+            setTimeout(function() {
+              self.mary.destroy();
+              self.director.reset();
+              self.director.destroyAll();
+              self.stateMachine.transition("gameOver");
+
+              setTimeout(function() {
+                self.restartGame();
+              }, 1000);
+            }, 500);
           });
-        });
+        }
       });
     },
 
