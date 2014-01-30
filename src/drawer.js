@@ -19,10 +19,11 @@
       ctx.restore();
     },
 
-    circle: function(center, radius, strokeColor, fillColor) {
+    circle: function(center, radius, strokeColor, fillColor, lineWidth) {
       describeCircle(this.ctx, center, radius);
 
       if (strokeColor !== undefined) {
+        this.ctx.lineWidth = lineWidth || 1;
         this.ctx.strokeStyle = strokeColor;
         this.ctx.stroke();
       }
