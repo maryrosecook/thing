@@ -56,8 +56,8 @@
       var flock = game.c.entities.create(Flock, {
         minDistance: 100,
         center: {
-          x: this.game.drawer.getHome().x - 102,
-          y: this.game.drawer.getHome().y + 102
+          x: this.game.drawer.getHome().x + 88,
+          y: this.game.drawer.getHome().y + 88
         }
       });
 
