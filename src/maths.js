@@ -34,6 +34,10 @@
       }
     },
 
+    equilateralTriangleHeight: function(width) {
+      return width * Math.sqrt(3) / 2;
+    },
+
     distributedVectors: function(num) {
       var v = [];
       var inc = 360 / num;
@@ -123,6 +127,13 @@
           y: vector.y / this.magnitude(vector)
         };
       }
+    },
+
+    vectorMultiply: function(vector, multiplier) {
+      return {
+        x: vector.x * multiplier,
+        y: vector.y * multiplier
+      };
     },
 
     // returns dot product of two passed vectors

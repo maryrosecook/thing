@@ -8,18 +8,18 @@
       shape: "circle",
       center: settings.center,
       size: { x: 20, y: 20 },
-      density: 0.4
+      density: 0.4,
+      fixedRotation: true
     });
 
     andro.augment(this, destroy);
     andro.augment(this, push);
 
-    andro.augment(this, passer, { from: "owner:destroy", to: "benignExploder:destroy" });
-    andro.augment(this, benignExploder, {
+    andro.augment(this, passer, { from: "owner:destroy", to: "exploder:destroy" });
+    andro.augment(this, exploder, {
       color: this.color,
       count: 30,
       maxLife: 1000,
-      size: { x: 1.5, y: 1.5 },
       force: 0.00005,
       event: "destroy"
     });
@@ -39,10 +39,11 @@
 
     collision: function(other, type) {
       if (type === "add" && other instanceof Stuka) {
-        other.receiveDamage(10, this);
+        other.receiveDamage(3, this);
       }
     },
 
+    islaPullAcceleration: 0.0005,
     handleKeyboardInput: function() {
       if (this.game.stateMachine.state === "playing") {
         var inputter = this.game.c.inputter;
@@ -60,6 +61,35 @@
           vec.y = this.SPEED;
         }
 
+        if (inputter.isPressed(inputter.D)) {
+          this.game.isla.destroy();
+        }
+
+        if (inputter.isPressed(inputter.SPACE)) {
+          // var self = this;
+          // setTimeout(function() {
+          //   var toIslaUnit = Maths.unitVector({
+          //     x: self.game.mary.center.x - self.game.isla.center.x,
+          //     y: self.game.mary.center.y - self.game.isla.center.y
+          //   });
+
+          //   self.game.isla.body.push({
+          //     x: toIslaUnit.x * self.islaPullAcceleration,
+          //     y: toIslaUnit.y * self.islaPullAcceleration
+          //   });
+          // }, 500);
+          // if (this.arm === undefined) {
+          //   this.arm = new Arm(this.game, {
+          //     entity1: this.game.isla,
+          //     entity2: this.game.mary
+          //   });
+          // }
+        } else if (this.arm !== undefined) {
+          // this.arm.destroy();
+          // this.arm = undefined;
+        }
+
+
         var unitVec = Maths.unitVector(vec);
         var pushVec = {
           x: unitVec.x * this.SPEED,
@@ -72,11 +102,6 @@
 
     draw: function(ctx) {
       this.game.drawer.circle(this.center, this.size.x / 2, undefined, this.color);
-      // ctx.lineWidth = 1;
-      // ctx.strokeStyle = "white";
-      // ctx.strokeRect(this.center.x - this.size.x / 2,
-      //                this.center.y - this.size.y / 2,
-      //                this.size.x, this.size.y);
     }
   };
 })(this);

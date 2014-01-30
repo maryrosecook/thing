@@ -1,9 +1,112 @@
 ;(function(exports) {
+  var Director = function(game) {
+    this.game = game;
+    this.buildQueue = new BuildQueue();
+    this.reset();
+  };
+
+  Director.MIN_DOT_SPAWN_DISTANCE = 1500;
+  Director.MIN_STUKA_SPAWN_DISTANCE = 800;
+
+  Director.prototype = {
+    update: function(__) {
+      if (this.game.stateMachine.state !== "playing") return;
+
+      var self = this;
+
+      if (this.flockCount(PointsDot) < 1) {
+        this.isStageInProgress = false;
+        this.buildQueue.add(PointsDot, delay=2000, function(createFn) {
+          self.isStageInProgress = true;
+          self.stage++;
+          var flock = game.c.entities.create(Flock, {
+            center: flockSpawnPoint(self.game.c.renderer,
+                                    game.isla.center,
+                                    Director.MIN_DOT_SPAWN_DISTANCE)
+          });
+
+          onIslaFirstDot(self.game, self.game.isla, flock, function() {
+            createSmallStukaFlock(self, delay=0);
+            createExplosiveFlock(self, delay=3000);
+          });
+
+          flock.stage = self.stage;
+
+          self.createFlockMembers(self.game, flock, count=self.stage, createFn, {});
+
+          // createPillar(self.game, { x: flock.center.x - 100, y: flock.center.y - 100 });
+          // createPillar(self.game, { x: flock.center.x + 100, y: flock.center.y - 100 });
+          // createPillar(self.game, { x: flock.center.x - 100, y: flock.center.y + 100 });
+          // createPillar(self.game, { x: flock.center.x + 100, y: flock.center.y + 100 });
+        });
+      }
+
+      if (this.stage > 3 &&
+          this.flockCount(HealthDot) < 1 &&
+          this.lastHealthFlockStage < this.stage) {
+        this.lastHealthFlockStage = this.stage;
+        createHealthFlock(this);
+      }
+
+      this.buildQueue.update();
+    },
+
+    start: function() {
+      createExplosiveFlock(this, delay=0);
+      var flock = game.c.entities.create(Flock, {
+        minDistance: 100,
+        center: {
+          x: this.game.drawer.getHome().x - 102,
+          y: this.game.drawer.getHome().y + 102
+        }
+      });
+
+      this.createFlockMembers(this.game, flock, 1, PointsDot, {});
+    },
+
+    reset: function() {
+      this.stage = 1;
+      this.isStageInProgress = true;
+      this.lastHealthFlockStage = 1
+      this.buildQueue.clear();
+    },
+
+    destroyAll: function() {
+      _.invoke(this.game.c.entities.all(Dot), "destroy");
+      _.invoke(this.game.c.entities.all(Stuka), "destroy");
+      _.invoke(this.game.c.entities.all(Explosive), "destroy");
+      _.invoke(this.game.c.entities.all(Square), "destroy");
+    },
+
+    flockCount: function(createFn) {
+      return _.filter(this.game.c.entities.all(Flock), function(x) {
+        return x.members.length > 0 && x.members[0] instanceof createFn;
+      }).length +
+      _.filter(this.buildQueue.all(), function(x) {
+        return x.type === createFn;
+      }).length;
+    },
+
+    createFlockMembers: function(game, flock, count, Bird, generalBirdSettings) {
+      _.times(count, function() {
+        var birdSettings = { center: flock.center };
+        utils.mixin(generalBirdSettings, birdSettings);
+        var bird = game.c.entities.create(Bird, birdSettings);
+
+        while (!game.physics.freeSpace(bird)) {
+          bird.body.move(Maths.surroundingSpawnPoint(flock.center, 100));
+        }
+
+        flock.add(bird);
+      });
+    }
+  };
+
   var BuildQueue = function() {
     var queue = [];
 
     this.add = function(createFn, delay, fn) {
-      var order = {
+      queue.push({
         type: createFn,
         time: new Date().getTime() + delay,
         run: function() {
@@ -14,9 +117,7 @@
         clear: function() {
           queue.splice(queue.indexOf(this), 1);
         }
-      };
-
-      queue.push(order);
+      });
     };
 
     this.all = function() {
@@ -36,114 +137,70 @@
     };
   };
 
-  var Director = function(game) {
-    this.game = game;
-    this.buildQueue = new BuildQueue();
-    this.stage = 1;
+  var createHealthFlock = function(director) {
+    director.buildQueue.add(HealthDot, delay=1000, function(createFn) {
+      var flock = game.c.entities.create(Flock, {
+        center: flockSpawnPoint(director.game.c.renderer,
+                                game.isla.center,
+                                Director.MIN_DOT_SPAWN_DISTANCE)
+      });
+
+      onIslaFirstDot(director.game, director.game.isla, flock, function() {
+        createSmallStukaFlock(director, delay=0);
+        createExplosiveFlock(director, delay=3000);
+      });
+
+      director.createFlockMembers(director.game, flock, count=5, createFn, {});
+    });
   };
 
-  Director.MIN_DOT_SPAWN_DISTANCE = 1500;
-  Director.MIN_STUKA_SPAWN_DISTANCE = 800;
-
-  Director.prototype = {
-    isStageInProgress: true,
-
-    update: function(__) {
-      var self = this;
-
-      if (this.isStageInProgress && this.flockCount(Stuka) < 1) {
-        this.buildQueue.add(Stuka, delay=1000, function(createFn) {
-          createFlock(self.game, createFn, {
-            center: Maths.surroundingSpawnPoint(game.isla.center,
-                                                Director.MIN_STUKA_SPAWN_DISTANCE),
-            count: self.stage
-          });
-        });
-      }
-
-      if (this.stage > 3 && this.flockCount(HealthDot) < 1) {
-        this.buildQueue.add(HealthDot, delay=5000, function(createFn) {
-          createFlock(self.game, createFn, {
-            center: Maths.surroundingSpawnPoint(game.isla.center,
-                                                Director.MIN_DOT_SPAWN_DISTANCE),
-            count: 5
-          });
-        });
-      }
-
-      if (this.flockCount(PointsDot) < 1) {
-        this.isStageInProgress = false;
-        this.buildQueue.add(PointsDot, delay=3000, function(createFn) {
-          self.isStageInProgress = true;
-          self.stage++;
-          createFlock(self.game, createFn, {
-            center: Maths.surroundingSpawnPoint(game.isla.center,
-                                                Director.MIN_DOT_SPAWN_DISTANCE),
-            count: self.stage
-          });
-        });
-      }
-
-      this.buildQueue.update();
-    },
-
-    start: function() {
-      createFlock(this.game, PointsDot, {
-        minDistance: 100,
-        count: this.stage,
-        center: {
-          x: this.game.drawer.getHome().x - 102,
-          y: this.game.drawer.getHome().y + 102
-        }
+  var createSmallStukaFlock = function(director, delay) {
+    director.buildQueue.add(SmallStuka, delay, function(createFn) {
+      var flock = game.c.entities.create(Flock, {
+        center: flockSpawnPoint(director.game.c.renderer,
+                                game.isla.center,
+                                Director.MIN_STUKA_SPAWN_DISTANCE)
       });
-    },
 
-    reset: function() {
-      this.stage = 1;
-      this.buildQueue.clear();
-    },
-
-    destroyAll: function() {
-      _.invoke(this.game.c.entities.all(Dot), "destroy");
-      _.invoke(this.game.c.entities.all(Stuka), "destroy");
-    },
-
-    flockCount: function(createFn) {
-      return _.filter(this.game.c.entities.all(Flock), function(x) {
-        return x.members.length > 0 && x.members[0] instanceof createFn;
-      }).length +
-      _.filter(this.buildQueue.all(), function(x) {
-        return x.type === createFn;
-      }).length;
-    }
+      director.createFlockMembers(director.game, flock, count=director.stage, createFn, {});
+    });
   };
 
-  // var isIslaNearPointsFirefly = function(isla, entities) {
-  //   var flocks = entities.all(Flock);
-  //   for (var i = 0; i < flocks.length; i++) {
-  //     if (flocks[i].type === "points") {
-  //       for (var j = 0; j < flocks[i].members.length; j++) {
-  //         if (Maths.distance(isla.center, flocks[i].members[j].center) < Isla.FIREFLY_RANGE) {
-  //           return true;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   return false;
-  // };
-
-  var createFlock = function(game, createBirdFn, flockSettings) {
-    game.c.runner.add(undefined, function() { // next tick so sure not creating during col det
-      var flock = game.c.entities.create(Flock, flockSettings);
-      _.times(flockSettings.count, function() {
-        var bird = game.c.entities.create(createBirdFn, { center: flock.center });
-        while (!game.physics.freeSpace(bird)) {
-          bird.body.move(Maths.surroundingSpawnPoint(flock.center, 100));
-        }
-
-        flock.add(bird);
+  var createExplosiveFlock = function(director, delay) {
+    director.buildQueue.add(Explosive, delay, function(createFn) {
+      var flock = game.c.entities.create(Flock, {
+        center: flockSpawnPoint(director.game.c.renderer,
+                                game.isla.center,
+                                Director.MIN_STUKA_SPAWN_DISTANCE)
       });
+
+      director.createFlockMembers(director.game, flock, 1, createFn, {});
+    });
+  };
+
+  var flockSpawnPoint = function(renderer, center, minDistance) {
+    var point = Maths.surroundingSpawnPoint(center, minDistance);
+    return renderer.onScreen({ center: point, size: { x: 1, y: 1 } }) ?
+      flockSpawnPoint.apply(null, arguments) :
+      point;
+  };
+
+
+  var createPillar = function(game, center) {
+    return game.c.entities.create(Square, {
+      center: center,
+      size: { x: 10, y: 10 },
+      color: "#fff"
+    });
+  };
+
+  var onIslaFirstDot = function(game, isla, flock, fn) {
+    andro.eventer(flock).bind(fn, "owner:memberDestroyed", function() {
+      if (game.stateMachine.state === "playing") { // only respond if game still going
+        fn();
+      }
+
+      andro.eventer(flock).unbind(fn, "owner:memberDestroyed");
     });
   };
 

@@ -33,8 +33,19 @@
       }
     },
 
+    line: function(from, to, lineWidth, strokeColor) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(from.x, from.y);
+      this.ctx.lineTo(to.x, to.y);
+      this.ctx.closePath();
+
+      this.ctx.lineWidth = lineWidth;
+      this.ctx.strokeStyle = strokeColor;
+      this.ctx.stroke();
+    },
+
     triangle: function(center, width, strokeColor, fillColor) {
-      var h = width * Math.sqrt(3)/2;
+      var h = Maths.equilateralTriangleHeight(width);
 
       this.ctx.beginPath();
       this.ctx.moveTo(center.x - width / 2, center.y + h / 2); // bottom left
@@ -44,7 +55,7 @@
       this.ctx.closePath();
 
       if (strokeColor !== undefined) {
-        this.ctx.strokeColor = strokeColor;
+        this.ctx.strokeStyle = strokeColor;
         this.ctx.stroke();
       }
 
@@ -79,11 +90,11 @@
       }
     },
 
-    rect: function(center, size, strokeColor, fillColor) {
+    rectangle: function(center, size, strokeColor, fillColor) {
       if (strokeColor !== undefined) {
         this.ctx.strokeStyle = strokeColor;
         this.ctx.strokeRect(center.x - size.x / 2, center.y - size.y / 2,
-                            size.x / 2, size.y / 2);
+                            size.x, size.y);
       }
 
       if (fillColor !== undefined) {

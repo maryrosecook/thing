@@ -6,6 +6,7 @@
     this.director = new Director(this);
     this.radar = new Radar(this);
     this.grid = new Grid(this, this.c.renderer.getViewSize().x * 0.8);
+    this.scoreboard = new Scoreboard(this, this.c.renderer.getViewSize().x * 0.8);
 
     this.stateMachine = new StateMachine({
       "": ["started"],
@@ -19,6 +20,8 @@
       self.stateMachine.transition("started");
       self.restartGame();
     });
+
+    this.particleGhosts = [];
   };
 
   exports.Game.prototype = {
@@ -28,15 +31,21 @@
       if (this.stateMachine.state === "playing") {
         this.director.update(delta);
         this.drawer.moveViewTowards(this.mary.center, 0.1);
-      } else if (this.stateMachine.state === "started" ||
-                 this.stateMachine.state === "gameOver") {
+      } else if (this.stateMachine.state === "started") {
         this.drawer.moveViewTowards(this.mary.center, 0.07);
-        if (this.c.inputter.isPressed(this.c.inputter.LEFT_ARROW) ||
-            this.c.inputter.isPressed(this.c.inputter.RIGHT_ARROW) ||
-            this.c.inputter.isPressed(this.c.inputter.UP_ARROW) ||
-            this.c.inputter.isPressed(this.c.inputter.DOWN_ARROW)) {
-          this.stateMachine.transition("playing");
-        }
+        this.listenForStartKey();
+      } else if (this.stateMachine.state === "gameOver") {
+        this.drawer.moveViewTowards(this.mary.center, 0.07);
+        this.listenForStartKey();
+      }
+    },
+
+    listenForStartKey: function() {
+      if (this.c.inputter.isPressed(this.c.inputter.LEFT_ARROW) ||
+          this.c.inputter.isPressed(this.c.inputter.RIGHT_ARROW) ||
+          this.c.inputter.isPressed(this.c.inputter.UP_ARROW) ||
+          this.c.inputter.isPressed(this.c.inputter.DOWN_ARROW)) {
+        this.stateMachine.transition("playing");
       }
     },
 
@@ -69,7 +78,7 @@
         center: { x: home.x - 28, y: home.y - 28 }
       });
 
-      this.director.start();
+      // this.link = new Link(game, { fromObj: this.mary, toObj: this.isla });
 
       var self = this;
       andro.augment(this.isla, {
@@ -79,6 +88,7 @@
               self.mary.destroy();
               self.director.reset();
               self.director.destroyAll();
+
               self.stateMachine.transition("gameOver");
 
               setTimeout(function() {
@@ -88,25 +98,49 @@
           });
         }
       });
+
+      this.director.start();
     },
 
     draw: function(ctx) {
-      this.grid.draw();
+      this.grid.draw(ctx);
+      // this.scoreboard.draw(ctx);
 
       if (this.stateMachine.state !== "") {
-        this.images.instructions.draw(ctx);
-
         if (this.stateMachine.state === "started") {
-          this.images.startGame.draw(ctx);
-          this.images.version.draw(ctx);
+
         } else if (this.stateMachine.state === "playing") {
           this.physics.draw();
           this.radar.draw(ctx);
+
+          if (this.isla.arm !== undefined) {
+            this.isla.arm.draw(ctx);
+          }
+
+          // if (this.link !== undefined) {
+          //   this.link.draw();
+          // }
         } else if (this.stateMachine.state === "gameOver") {
-          this.images.gameOver.draw(ctx);
-          this.images.version.draw(ctx);
         }
       }
+
+      for (var i = 0, len = this.particleGhosts.length; i < len; i++) {
+        var particleGhost = this.particleGhosts[i];
+        this.drawer.circle(particleGhost.center, 0.5,
+                           undefined, particleGhost.color);
+      }
+    }
+  };
+
+  var Link = function(game, settings) {
+    this.game = game;
+    this.fromObj = settings.fromObj;
+    this.toObj = settings.toObj;
+  };
+
+  Link.prototype = {
+    draw: function() {
+      this.game.drawer.line(this.fromObj.center, this.toObj.center, 1, "#333");
     }
   };
 })(this);

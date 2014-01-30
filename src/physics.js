@@ -24,7 +24,7 @@
     },
 
     createBody: function(entity, settings) {
-      var body = makeBody(this.world, entity, settings, shapes[settings.shape](settings));
+      var body = makeBody(this.world, entity, settings);
       var physics = this;
       body.remake = function(settingsUpdates) {
         utils.mixin(settingsUpdates, settings);
@@ -50,6 +50,21 @@
       }
     },
 
+    createRevoluteJoint: function(entity1, entity2) {
+      var jointPos = new Vec(entity1.center.x * BOX_2D_SCALE,
+                             entity1.center.y * BOX_2D_SCALE);
+      var objPos = new Vec(entity2.center.x * BOX_2D_SCALE,
+                           entity2.center.y * BOX_2D_SCALE);
+
+      var jointDef = new Box2D.Dynamics.Joints.b2RevoluteJointDef();
+      jointDef.Initialize(entity1.body, entity2.body, jointPos, objPos);
+      return this.world.CreateJoint(jointDef);
+    },
+
+    destroyJoint: function(joint) {
+      this.world.DestroyJoint(joint);
+    },
+
     freeSpace: function(entity) {
       for (var i = 0; i < this.bodies.length; i++) {
         if (this.bodies[i].entity !== entity) {
@@ -66,28 +81,47 @@
   };
 
   var shapes = {
-    circle: function(settings) {
-      var shape = new Box2D.Collision.Shapes.b2CircleShape()
-		  shape.SetRadius(settings.size.x / 2 * BOX_2D_SCALE);
-      return shape;
+    circle: {
+      create: function(settings) {
+        var shape = new Box2D.Collision.Shapes.b2CircleShape();
+        this.setSize.call(shape, settings.size);
+        return shape;
+      },
+
+      setSize: function(size) {
+		    this.SetRadius(size.x / 2 * BOX_2D_SCALE);
+      }
     },
 
-    rectangle: function(settings) {
-      var shape = new Box2D.Collision.Shapes.b2PolygonShape()
-		  shape.SetAsBox(settings.size.x / 2 * BOX_2D_SCALE, settings.size.y / 2 * BOX_2D_SCALE);
-      return shape;
+    rectangle: {
+      create: function(settings) {
+        var shape = new Box2D.Collision.Shapes.b2PolygonShape();
+        this.setSize.call(shape, settings.size);
+        return shape;
+      },
+
+      setSize: function(size) {
+        this.SetAsBox(size.x / 2 * BOX_2D_SCALE, size.y / 2 * BOX_2D_SCALE);
+      }
     },
 
-    triangle: function(settings) {
-      var shape = new Box2D.Collision.Shapes.b2PolygonShape()
-      var scale = settings.size.x * BOX_2D_SCALE;
- 	    shape.SetAsArray([
-        new Vec(-scale * 0.5, scale * 0.866),
-        new Vec(0, -scale * 0.866),
-        new Vec(scale * 0.5, scale * 0.866)
-	    ]);
+    triangle: {
+      create: function(settings) {
+        var shape = new Box2D.Collision.Shapes.b2PolygonShape();
+        this.setSize.call(shape, settings.size);
+        return shape;
+      },
 
-      return shape;
+      setSize: function(size) {
+        var scale = size.x * BOX_2D_SCALE;
+
+        // pointing down
+ 	      this.SetAsArray([
+          new Vec(-scale * 0.5, scale * 0.5), // left top
+          new Vec(0, -scale * 0.5), // bottom middle
+          new Vec(scale * 0.5, scale * 0.5) // right top
+	      ]);
+      }
     }
   };
 
@@ -123,30 +157,34 @@
     return Coquette.Collider.Maths.rectanglesIntersecting(entity1, entity2);
   };
 
-  var makeBody = function(world, entity, settings, shape) {
+  var makeBody = function(world, entity, settings) {
 		var bodyDef = new Box2D.Dynamics.b2BodyDef();
 		bodyDef.type = Box2D.Dynamics.b2Body.b2_dynamicBody;
     bodyDef.bullet = settings.bullet || false;
+    bodyDef.fixedRotation = settings.fixedRotation || false;
 		bodyDef.position = new Vec(settings.center.x * BOX_2D_SCALE,
 			                         settings.center.y * BOX_2D_SCALE);
 
+    var shapeFns = shapes[settings.shape];
+
+    // create fixture def
 		var fixtureDef = new Box2D.Dynamics.b2FixtureDef();
 		fixtureDef.density = settings.density || 0.8;
 		fixtureDef.friction = settings.friction || 0;
 		fixtureDef.restitution = settings.restitution || 0.5;
-		fixtureDef.shape = shape;
+		fixtureDef.shape = shapeFns.create(settings);
 
 		var body = world.CreateBody(bodyDef);
+    body.entity = entity;
 
-    // body.__proto__.__proto__ = physicalBodyFns;
+    // mixin handy fns
     utils.mixin(physicalBodyFns, body);
 
     if (settings.bodyType !== undefined) {
       body.SetType(settings.bodyType);
     }
 
-    body.entity = entity;
-
+    // create fixture
 		var fixture = body.CreateFixture(fixtureDef);
 
     if (settings.vec !== undefined) {
@@ -201,9 +239,9 @@
 
     rotateTo: function(dAngle) {
       var self = this;
-      this.entity.game.c.runner.add(undefined, function() {
+      // this.entity.game.c.runner.add(undefined, function() {
         self.SetAngle(Maths.degToRad(dAngle));
-      });
+      // });
     },
 
     drag: function(ratio) {
@@ -212,11 +250,10 @@
                       this.GetPosition());
     },
 
-    change: function(settingsUpdates) {
-      var self = this;
-      this.entity.game.c.runner.add(undefined, function() {
-        self.entity.body = self.remake(settingsUpdates);
-      });
+    setSize: function(size) {
+      var shape = this.GetFixtureList().GetShape(); // assumes only one shape on entity
+      shapes[this.entity.shape].setSize.call(shape, size);
+      this.entity.size = Maths.copyPoint(size);
     },
 
     vec: function() {

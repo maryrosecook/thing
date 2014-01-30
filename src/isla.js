@@ -7,42 +7,76 @@
     this.color = "#f00";
     this.points = 0;
 
+    andro.augment(this, {
+      setup: function(owner, eventer) {
+        eventer.bind(this, "owner:destroy", function() {
+          owner.link = undefined;
+        });
+      }
+    });
+
     this.body = game.physics.createBody(this, {
       shape: "circle",
       center: settings.center,
       size: { x: MAX_HEALTH, y: MAX_HEALTH },
-      density: 0.6
+      density: 0.6,
+      fixedRotation: true
     });
 
-    andro.augment(this, pulse, { rgb: [255, 0, 0], colorsToCycle: [1, 0, 0] });
+    andro.augment(this, pulse, { rgb: [255, 0, 0], colorsToCycle: [1, 0, 0], minBrightness: 75 });
     andro.augment(this, health, { health: MAX_HEALTH });
     andro.augment(this, destroy);
     andro.augment(this, push);
     andro.augment(this, follow, { acceleration: 0.00003 });
     andro.augment(this, home, {
       acceleration: 0.000020,
-      turnSpeed: 0.001
+      turnSpeed: 0.004
     });
 
-    andro.augment(this, passer, { from: "owner:destroy", to: "benignExploder:destroy" });
-    andro.augment(this, benignExploder, {
+    andro.augment(this, passer, { from: "owner:destroy", to: "exploder:destroy" });
+    andro.augment(this, exploder, {
       color: this.color,
       count: 30,
       maxLife: 1000,
-      size: { x: 1.5, y: 1.5 },
       force: 0.00005,
       event: "destroy"
     });
 
-    andro.augment(this, passer, { from: "health:receiveDamage", to: "benignExploder:damage" });
-    andro.augment(this, benignExploder, {
+    andro.augment(this, passer, { from: "health:receiveDamage", to: "exploder:damage" });
+    andro.augment(this, exploder, {
       color: this.color,
       count: 3,
       maxLife: 1000,
-      size: { x: 1.5, y: 1.5 },
       force: 0.00005,
       event: "damage"
     });
+
+    // arm creation and destruction
+    // andro.augment(this, {
+    //   setup: function(owner, eventer) {
+    //     eventer.bind(this, "owner:update", function() {
+    //       if (owner.arm === undefined &&
+    //           owner.getHealth() <= 9 &&
+    //           Maths.distance(owner.center, owner.game.mary.center) < 80 &&
+    //           Maths.distance(owner.center, owner.game.mary.center) > 40) {
+    //         owner.arm = new Arm(owner.game, { entity1: owner, entity2: game.mary });
+    //       } else if (owner.getHealth() > 9) {
+    //         destroyArmIfExists();
+    //       }
+    //     });
+
+    //     eventer.bind(this, "owner:destroy", function() {
+    //       destroyArmIfExists();
+    //     });
+    //   },
+
+    //   destroyArmIfExists: function() {
+    //     if (owner.arm !== undefined) {
+    //       owner.arm.destroy();
+    //       owner.arm = undefined;
+    //     }
+    //   }
+    // });
 
     andro.augment(this, {
       setup: function(owner, eventer) {
@@ -50,24 +84,22 @@
           eventer.emit("pulse:stop");
           if (owner.getHealth() <= 6) {
             owner.destroy();
+            return;
           } else if (owner.getHealth() <= 9) {
             eventer.emit("pulse:start", { speed: 15 });
           } else if (owner.getHealth() < 15) {
             eventer.emit("pulse:start", { speed: 5 });
           }
 
-          owner.body.change({
-            size: { x: owner.getHealth(), y: owner.getHealth() },
-            center: owner.center
-          });
+          owner.body.setSize({ x: owner.getHealth(), y: owner.getHealth() });
         });
       }
     });
 
     // targeting - dots or mary
     andro.augment(this, {
-      maryRange: this.game.c.renderer.getViewSize().x / 2,
       birdRange: this.game.c.renderer.getViewSize().x / 2,
+      maryPullAcceleration: 0.000002,
 
       setup: function(owner, eventer) {
         this.owner = owner;
@@ -83,6 +115,19 @@
             andro.eventer(owner).emit("follow:go", owner.target);
           } else if (owner.target instanceof Dot) {
             andro.eventer(owner).emit("home:go", owner.target);
+
+            // also pull towards mary a little
+            if (owner.game.c.inputter.isDown(owner.game.c.inputter.SPACE)) {
+              var toMaryUnit = Maths.unitVector({
+                x: owner.game.mary.center.x - owner.center.x,
+                y: owner.game.mary.center.y - owner.center.y
+              });
+
+              owner.body.push({
+                x: toMaryUnit.x * this.maryPullAcceleration,
+                y: toMaryUnit.y * this.maryPullAcceleration
+              });
+            }
           }
         });
       },
@@ -103,9 +148,8 @@
           }
         }
 
-        if (Maths.distance(this.owner.center, self.game.mary.center) <
-              this.maryRange) {
-          return self.game.mary;
+        if (this.owner.game.c.renderer.onScreen(this.owner)) {
+          return this.owner.game.mary;
         }
       }
     });
@@ -136,10 +180,6 @@
       if (this.game.stateMachine.state === "playing") {
         andro.eventer(this).emit('owner:update');
       }
-      // var self = this;
-      // snowflake.every(function() {
-      //   console.log(self.center.x, self.center.y)
-      // }, 1000);
     },
 
     score: function(points) {
@@ -148,12 +188,34 @@
 
     collision: function(other) {
       if (other instanceof Dot) {
+        andro.eventer(this).emit("gotDot", other);
         andro.eventer(this).emit("home:stop");
       }
     },
 
     draw: function(ctx) {
-      this.game.drawer.circle(this.center, this.size.x / 2, undefined, this.getColor());
+      this.game.drawer.circle(this.center, this.size.x / 2, undefined, this.getCurrentColor());
+    }
+  };
+
+  var Arm = function(game, settings) {
+    this.game = game;
+    this.entity1 = settings.entity1;
+    this.entity2 = settings.entity2;
+    this.createJoint(this.entity1, this.entity2);
+  };
+
+  Arm.prototype = {
+    createJoint: function(entity1, entity2) {
+      this.joint = this.game.physics.createRevoluteJoint(entity1, entity2);
+    },
+
+    draw: function() {
+      this.game.drawer.line(this.entity1.center, this.entity2.center, 0.3, "#f00");
+    },
+
+    destroy: function() {
+      this.game.physics.destroyJoint(this.joint);
     }
   };
 })(this);

@@ -13,7 +13,7 @@
       var m = Coquette.Collider.Maths;
 
       var possibleRadarEntities = _.filter(this.game.c.entities.all(), function(x) {
-        return x instanceof Dot || x instanceof Stuka;
+        return _.any([Dot, Stuka, Explosive], function(y) { return x instanceof y; });
       });
 
       var radarEntities = _.filter(possibleRadarEntities, function(x) {
@@ -27,7 +27,7 @@
 
         var arcStartEndRad = extremityAnglesRad(viewCenter, entity);
 
-        ctx.strokeStyle = entity.color;
+        ctx.strokeStyle = entity.color || entity.getColor();
         ctx.beginPath();
         ctx.arc(viewCenter.x, viewCenter.y, viewRadius - 1,
                 arcStartEndRad[0] + ARC_ANGLE_OFFSET,
