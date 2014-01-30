@@ -52,7 +52,7 @@
     },
 
     start: function() {
-      createExplosiveFlock(this, delay=0);
+      // createExplosiveFlock(this, delay=0);
       var flock = game.c.entities.create(Flock, {
         minDistance: 100,
         center: {
