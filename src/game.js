@@ -8,6 +8,8 @@
     this.grid = new Grid(this, this.c.renderer.getViewSize().x * 0.8);
     this.scoreboard = new Scoreboard(this, this.c.renderer.getViewSize().x * 0.8);
 
+    this.c.renderer.setViewCenter(this.drawer.getHome());
+
     this.stateMachine = new StateMachine({
       "": ["started"],
       started: ["playing"],
@@ -77,7 +79,7 @@
       });
 
       this.isla = this.c.entities.create(Isla, {
-        center: { x: home.x - 28, y: home.y - 28 }
+        center: { x: home.x - 88, y: home.y - 88 }
       });
 
       // this.link = new Link(game, { fromObj: this.mary, toObj: this.isla });
