@@ -52,12 +52,14 @@
     setupImages: function(callback) {
       var self = this;
       images.load({
+        keys: { url: "/images/keys.png", size: { x: 200, y: 200 } },
         startGame: { url: "/images/startgame.png", size: { x: 200, y: 100 } },
         instructions: { url: "/images/instructions.png", size: { x: 200, y: 200 } },
         gameOver:  { url: "/images/gameover.png", size: { x: 200, y: 100 } },
         version:  { url: "/images/version.png", size: { x: 250, y: 200 } }
       }, function(images) {
         self.images = images;
+        self.images.keys.center = { x: 190, y: 158 };
         self.images.startGame.center = { x: 267, y: 207 };
         self.images.instructions.center = { x: 259, y: 122 };
         self.images.gameOver.center = { x: 267, y: 207 };
@@ -107,6 +109,7 @@
       // this.scoreboard.draw(ctx);
 
       if (this.stateMachine.state !== "") {
+        this.images.keys.draw(ctx);
         if (this.stateMachine.state === "started") {
 
         } else if (this.stateMachine.state === "playing") {
